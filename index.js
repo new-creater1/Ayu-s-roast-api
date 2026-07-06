@@ -57,17 +57,16 @@ app.get('/', (req, res) => {
 // Helper function to call Gemini API
 async function callGemini(systemPrompt, userPrompt, isImageRequest = false) {
     const key = getApiKey();
-    if (!key) throw new Error("API Keys missing! plz check environment variables.");
+    if (!key) throw new Error("API Keys missing!");
 
-    // Image generation ke liye Imagen-3 model use hoga, baaki ke liye Gemini 2.5 Flash
+    // Image ke liye v1 stable endpoint use karein, text ke liye v1beta
+    const version = isImageRequest ? 'v1' : 'v1beta';
     const model = isImageRequest ? 'imagen-3.0-generate-002' : 'gemini-2.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${key}`;
 
     const payload = isImageRequest ? {
-        // Image generation ke liye specific structure
         contents: [{ parts: [{ text: userPrompt }] }]
     } : {
-        // Text/Code generation structure
         contents: [{
             role: "user",
             parts: [{ text: `${systemPrompt}\n\nUser Request: ${userPrompt}` }]
@@ -78,19 +77,18 @@ async function callGemini(systemPrompt, userPrompt, isImageRequest = false) {
         const response = await axios.post(url, payload);
         return response.data;
     } catch (error) {
-        // Agar Resource Exhausted (Rate Limit - 429) ya koi auth error aaye toh key badlo
         if (error.response && (error.response.status === 429 || error.response.status === 401)) {
-            console.warn(`[Warning] Key Index ${currentKeyIndex} hit rate-limit or error. Rotating...`);
+            console.warn(`[Warning] Rotating key due to status ${error.response.status}`);
             rotateKey();
-            // Nayi key ke sath ek baar firse try karo
             const retryKey = getApiKey();
-            const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${retryKey}`;
+            const retryUrl = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${retryKey}`;
             const retryResponse = await axios.post(retryUrl, payload);
             return retryResponse.data;
         }
         throw error;
     }
 }
+
 
 // 1. ROAST ROUTE
 app.get('/roast', async (req, res) => {
