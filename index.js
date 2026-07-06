@@ -5,7 +5,7 @@ const app = express();
 // Performance and Concurrency Tuning
 const MAX_CONCURRENT_JOBS = 1; 
 const ANTI_FLOOD_DELAY = 1200; // 1.2s cooldown between requests
-const API_TIMEOUT_LIMIT = 8200; // Drops hanging calls safely at 8.2s to prevent Vercel 504 crash
+const API_TIMEOUT_LIMIT = 25000; // Drops hanging calls safely at 8.2s to prevent Vercel 504 crash
 
 const API_KEYS = [
     process.env.GEMINI_KEY_1 || process.env.GEMINI_KEY,
